@@ -1,0 +1,7 @@
+autodafe 笔记
+
+用gdb mi当自己的调试器，lex和yacc来做编译器，是很方便呐
+
+在函数里用debug()和error()，在命令行里加上-d来查看调试信息，这样调试对于定位错误，和别人来理解这个软件都很有用呢
+
+修复了一个bug，原因是可能是某一个版本的gdb可以-exec-run arguments。但是常用的gdb只能够-exec-arguments arguments，-exec-run不能跟参数，于是改成了两步。
