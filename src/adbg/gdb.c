@@ -655,10 +655,12 @@ int gdb_init(config *conf) {
     //gdb_break(conf, "_init", 0, 0);
 
     /* run the program */
-    if (conf->args)
-      gdb_write_line(conf, "-exec-run %s\n", conf->args);
-    else
-      gdb_write_line(conf, "-exec-run\n");
+    if (conf->args){
+      gdb_write_line(conf, "-exec-arguments %s\n", conf->args);
+      gdb_wait_for(conf, GDB_LINE_DONE);
+      gdb_wait_for(conf, GDB_LINE_PROMPT);
+    }
+    gdb_write_line(conf, "-exec-run\n");
   }
 
   // TODOXXXFIXMEXXX add the vuln functions */
