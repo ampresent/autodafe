@@ -648,7 +648,8 @@ int gdb_init(config *conf) {
              library names. It's a little hack, but... who cares :-) */
 
     // TODOXXXFIXMEXXX
-        gdb_write_line(conf, "break _init\n");
+    //  ignore once, because gdb set breakpoint on glibc's _init too
+        gdb_write_line(conf, "-break-insert -i 1 _init\n");
         gdb_wait_for(conf, GDB_LINE_DONE);
         gdb_wait_for(conf, GDB_LINE_PROMPT);
 
