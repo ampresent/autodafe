@@ -40,6 +40,7 @@
 #define GDB_LINE_EXIT       0x08
 #define GDB_LINE_SIGSEGV    0x09
 #define GDB_LINE_SIGNAL     0x0a
+#define GDB_LINE_ARCH       0x0b
 
 #define GDB_LINE_PROMPT_S     "(gdb) \r\n" /* DON'T FORGET THE F*CKING SPACE ;-) */
 #define GDB_LINE_TILDA_S      "~"
@@ -53,11 +54,17 @@
 #define GDB_LINE_SIGSEGV_S_2  "^done,reason=\"signal-received\",signal-name=\"SIGSEGV\""
 #define GDB_LINE_SIGNAL_S_1   "*stopped,reason=\"signal-received\",signal-name="
 #define GDB_LINE_SIGNAL_S_2   "^done,reason=\"signal-received\",signal-name="
+#define GDB_LINE_ARCH_S       "~\"This GDB was configured as"
 
 #define GDB_ADDR    0x00
 #define GDB_STRING  0x01
 #define GDB_FORMAT  0x02
 
+#define GDB_PARA_STACK  0x00
+#define GDB_PARA_RDI    0x01
+#define GDB_PARA_RSI    0x02
+
+int arch64 = 0;
 
 /* instance of conf */
 config *the_conf;
@@ -289,7 +296,7 @@ char * gdb_look_for(config *conf, char * value) {
  *---------------------------------------------------------------------------*/
 void gdb_event_sigsegv(config *conf) {
 
-  unsigned int eip;
+  u_int64_t eip;
   char *result;
 
   /* debug */
@@ -298,7 +305,10 @@ void gdb_event_sigsegv(config *conf) {
   /* check the address */
   result = gdb_look_for(conf, "addr"); /* don't forget to free */
   eip =  strtol(result, NULL, 16);
-  printf("[***] EIP: %p\n", (void *) eip);
+  if (arch64)
+    printf("[***] RIP: %p\n", (void *) eip);
+  else
+    printf("[***] EIP: %p\n", (void *) eip);
 
   /* free */
   free(result);
@@ -333,6 +343,7 @@ void gdb_event_sigsegv(config *conf) {
 int gdb_type_line(config *conf) {
 
   int result;
+  char * arch_s;
 
   /* debug */
   debug(1, "<-----------------------[enter]\n");
@@ -341,6 +352,18 @@ int gdb_type_line(config *conf) {
     result = GDB_LINE_PROMPT;
     debug(2, "[line_type]: prompt\n");
   }
+
+  else if (strncmp(conf->gdb_buf, GDB_LINE_ARCH_S, strlen(GDB_LINE_ARCH_S)) == 0){
+      arch_s = gdb_look_for(conf, "as");
+      debug(3, "architecture: %s\n", arch_s);
+      if (strstr(arch_s, "64") != NULL){
+          arch64 = 1;
+      }
+      free(arch_s); arch_s = NULL;
+      result = GDB_LINE_ARCH;
+      debug(2, "[line_type]: architecture info\n");
+  }
+
   else if (strncmp(conf->gdb_buf, GDB_LINE_TILDA_S, strlen(GDB_LINE_TILDA_S)) == 0) {
     result = GDB_LINE_TILDA;
     debug(2, "[line_type]: comment (tilda)\n");
@@ -526,7 +549,7 @@ void gdb_write_line(config *conf, char *fmt, ...) {
  *             GDB_ADDR   0x00
  * RETN: void (quit if there is an error)
  *---------------------------------------------------------------------------*/
-void gdb_break(config *conf, char *name, unsigned int esp, unsigned int type) {
+void gdb_break(config *conf, char *name, unsigned int para, unsigned int esp, unsigned int type) {
 
   struct struct_bp *bp;
   struct struct_bp *prev = NULL;
@@ -581,6 +604,7 @@ void gdb_break(config *conf, char *name, unsigned int esp, unsigned int type) {
   free(result); result = NULL;
 
   /* copy the esp value in the linked list */
+  bp->para = para;
   bp->esp = esp;
 
   /* copy the type value */
@@ -590,8 +614,19 @@ void gdb_break(config *conf, char *name, unsigned int esp, unsigned int type) {
   verbose_ ("[*]-+-> breakpoint on: \"%s\"\n", name);
   verbose__("    +-> id  : %d\n", bp->id);
   verbose__("    +-> addr: %p\n", bp->addr);
-  verbose__("    +-> esp : 0x%02x\n", bp->esp);
-  verbose__("    +-> type: 0x%02x\n", bp->type);
+  if (bp->para == GDB_PARA_STACK){
+      if (arch64){
+        if (bp->para == GDB_PARA_RDI)
+          verbose__("    +-> rdi\n");
+        else if (bp->para == GDB_PARA_RSI)
+          verbose__("    +-> rsi\n");
+        else if (bp->para == GDB_PARA_STACK)
+          verbose__("    +-> rsp : 0x%02llx\n", bp->esp);
+      }
+      else
+        verbose__("    +-> esp : 0x%02x\n", bp->esp);
+      verbose__("    +-> type: 0x%02x\n", bp->type);
+  }
 
   /* debug */
   debug(1, "<-----------------------[quit]\n");
@@ -615,6 +650,8 @@ int gdb_init(config *conf) {
 
   /* init the buffer (thanks to valgrind) */
   bzero(conf->gdb_buf, GDB_BUF_SIZE);
+
+  gdb_wait_for(conf, GDB_LINE_ARCH);
 
   /* wait for a prompt */
   gdb_wait_for(conf, GDB_LINE_PROMPT);
@@ -666,12 +703,12 @@ int gdb_init(config *conf) {
 
   // TODOXXXFIXMEXXX add the vuln functions */
   /* string (stack/heap overflow based) */
-  gdb_break(conf, "strcpy", 0x08, GDB_STRING); /* $esp+8 and string value */
-  gdb_break(conf, "strcat", 0x08, GDB_STRING); /* $esp+8 and string value */
-  gdb_break(conf, "gets", 0x04, GDB_STRING);   /* $esp+4 and string value */
-  gdb_break(conf, "sprintf", 0x08, GDB_STRING);   /* $esp+8 and string value */
-  gdb_break(conf, "getenv", 0x04, GDB_STRING);   /* $esp+4 and string value */
-  gdb_break(conf, "stpcpy", 0x08, GDB_STRING);   /* $esp+8 and string value */
+  gdb_break(conf, "strcpy", GDB_PARA_RSI, 0x08, GDB_STRING); /* $esp+8 and string value */
+  gdb_break(conf, "strcat", GDB_PARA_RSI, 0x08, GDB_STRING); /* $esp+8 and string value */
+  gdb_break(conf, "gets", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value */
+  gdb_break(conf, "sprintf", GDB_PARA_RSI, 0x08, GDB_STRING);   /* $esp+8 and string value */
+  gdb_break(conf, "getenv", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value */
+  gdb_break(conf, "stpcpy", GDB_PARA_RSI, 0x08, GDB_STRING);   /* $esp+8 and string value */
   //  gdb_break(conf, "memcpy", 0x08, GDB_STRING);   /* $esp+8 and string value */
   //  gdb_break(conf, "memccpy", 0x08, GDB_STRING);   /* $esp+8 and string value */
   //  gdb_break(conf, "bcopy", 0x04, GDB_STRING);   /* $esp+4 and string value */
@@ -679,8 +716,8 @@ int gdb_init(config *conf) {
   //  gdb_break(conf, "realpath", 0x04, GDB_STRING);   /* $esp+4 and string value */
 
   /* format string overflow based */
-  gdb_break(conf, "printf", 0x04, GDB_STRING);   /* $esp+4 and string value */
-  gdb_break(conf, "syslog", 0x04, GDB_STRING);   /* $esp+4 and string value */
+  gdb_break(conf, "printf", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value */
+  gdb_break(conf, "syslog", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value */
 
   /* open the connection with the fuzzer */
   if (conf->port) inet_connection(conf);
@@ -720,7 +757,16 @@ void gdb_break_string(config *conf, struct struct_bp *bp) {
   debug(1, "<-----------------------[enter]\n");
 
   /* write the string */
-  gdb_write_line(conf, "printf \"%%s\\n\", *((char**)($esp+%d))\n", bp->esp);
+  if (arch64){
+    if (bp->para == GDB_PARA_RDI)
+      gdb_write_line(conf, "printf \"%%s\\n\", $rdi\n");
+    else if (bp->para == GDB_PARA_RSI)
+      gdb_write_line(conf, "printf \"%%s\\n\", $rsi\n");
+    else if (bp->para == GDB_PARA_STACK)
+      gdb_write_line(conf, "printf \"%%s\\n\", *((char**)($rsp+%d))\n", bp->esp);
+  }
+  else
+    gdb_write_line(conf, "printf \"%%s\\n\", *((char**)($esp+%d))\n", bp->esp);
 
   /* read the result (start with '~') and put it in a buffer */
   gdb_wait_for(conf, GDB_LINE_TILDA);
