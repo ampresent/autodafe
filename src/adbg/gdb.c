@@ -54,7 +54,7 @@
 #define GDB_LINE_SIGSEGV_S_2  "^done,reason=\"signal-received\",signal-name=\"SIGSEGV\""
 #define GDB_LINE_SIGNAL_S_1   "*stopped,reason=\"signal-received\",signal-name="
 #define GDB_LINE_SIGNAL_S_2   "^done,reason=\"signal-received\",signal-name="
-#define GDB_LINE_ARCH_S       "~\"This GDB was configured as"
+#define GDB_LINE_ARCH_S       "~\"The target architecture is set automatically (currently"
 
 #define GDB_ADDR    0x00
 #define GDB_STRING  0x01
@@ -354,12 +354,9 @@ int gdb_type_line(config *conf) {
   }
 
   else if (strncmp(conf->gdb_buf, GDB_LINE_ARCH_S, strlen(GDB_LINE_ARCH_S)) == 0){
-      arch_s = gdb_look_for(conf, "as");
-      debug(3, "architecture: %s\n", arch_s);
-      if (strstr(arch_s, "64") != NULL){
+      if (strstr(conf->gdb_buf, "64") != NULL){
           arch64 = 1;
       }
-      free(arch_s); arch_s = NULL;
       result = GDB_LINE_ARCH;
       debug(2, "[line_type]: architecture info\n");
   }
@@ -651,9 +648,13 @@ int gdb_init(config *conf) {
   /* init the buffer (thanks to valgrind) */
   bzero(conf->gdb_buf, GDB_BUF_SIZE);
 
+  /* wait for a prompt */
+  gdb_wait_for(conf, GDB_LINE_PROMPT);
+
+  gdb_write_line(conf, "show architecture\n");
+
   gdb_wait_for(conf, GDB_LINE_ARCH);
 
-  /* wait for a prompt */
   gdb_wait_for(conf, GDB_LINE_PROMPT);
 
   /* set the heigh to zero (no "type <return> to...") */
@@ -686,9 +687,12 @@ int gdb_init(config *conf) {
 
     // TODOXXXFIXMEXXX
     //  ignore once, because gdb set breakpoint on glibc's _init too
+      if (arch64)
         gdb_write_line(conf, "-break-insert -i 1 _init\n");
-        gdb_wait_for(conf, GDB_LINE_DONE);
-        gdb_wait_for(conf, GDB_LINE_PROMPT);
+      else
+        gdb_write_line(conf, "-break-insert _init\n");
+      gdb_wait_for(conf, GDB_LINE_DONE);
+      gdb_wait_for(conf, GDB_LINE_PROMPT);
 
     //gdb_break(conf, "_init", 0, 0);
 
