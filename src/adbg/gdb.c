@@ -52,6 +52,7 @@
 #define GDB_LINE_EXIT_S       "*stopped,reason=\"exited-normally\""
 #define GDB_LINE_SIGSEGV_S_1  "*stopped,reason=\"signal-received\",signal-name=\"SIGSEGV\""
 #define GDB_LINE_SIGSEGV_S_2  "^done,reason=\"signal-received\",signal-name=\"SIGSEGV\""
+#define GDB_LINE_SIGSEGV_S_3  "*stopped,reason=\"exited-signalled\",signal-name=\"SIGABRT\",signal-meaning=\"Aborted\""
 #define GDB_LINE_SIGNAL_S_1   "*stopped,reason=\"signal-received\",signal-name="
 #define GDB_LINE_SIGNAL_S_2   "^done,reason=\"signal-received\",signal-name="
 #define GDB_LINE_ARCH_S       "~\"The target architecture is set automatically (currently"
@@ -368,7 +369,8 @@ int gdb_type_line(config *conf) {
 
   /* check if it's a segmentation fault (asynchrone) */
   else if ((strncmp(conf->gdb_buf, GDB_LINE_SIGSEGV_S_1, strlen(GDB_LINE_SIGSEGV_S_1)) == 0) ||
-	   (strncmp(conf->gdb_buf, GDB_LINE_SIGSEGV_S_2, strlen(GDB_LINE_SIGSEGV_S_2)) == 0)) {
+	   (strncmp(conf->gdb_buf, GDB_LINE_SIGSEGV_S_2, strlen(GDB_LINE_SIGSEGV_S_2)) == 0) ||
+       (strncmp(conf->gdb_buf, GDB_LINE_SIGSEGV_S_3, strlen(GDB_LINE_SIGSEGV_S_3)) == 0)) {
 
     result = GDB_LINE_SIGSEGV;
     debug(2, "[line_type]: SEGMENTATION FAULT!\n");
