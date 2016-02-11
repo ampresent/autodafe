@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # script used to create the fuzz dictionary. Basic functions.
 # need perl (famous perl -e '...')
 # 

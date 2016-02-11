@@ -5,3 +5,7 @@ autodafe 笔记
 在函数里用debug()和error()，在命令行里加上-d来查看调试信息，这样调试对于定位错误，和别人来理解这个软件都很有用呢
 
 修复了一个bug，原因是可能是某一个版本的gdb可以-exec-run arguments。但是常用的gdb只能够-exec-arguments arguments，-exec-run不能跟参数，于是改成了两步。
+
+修复了一个bug。fuzz_core中不能进入主干，在进行了通信的调试之后，发现不是通信的问题，相信strace的结果，一定是可靠的。最后发现是fuzz的初始化阶段，返回的结果为0。
+跟踪到file.c里解析string.fuzz的部分，发现不能解析出来，对比文件内容，发现有多余的-e。追踪到tools/generator.sh，发现#!/bin/sh，而sh的echo -e会输出一个 -e，
+错误源头在这里。
