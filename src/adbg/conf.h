@@ -6,17 +6,19 @@
  * NAME       : conf.h
  * DESCRIPTION: All the configuration values
  *---------------------------------------------------------------------------*/
+#include <sys/types.h>
 
-#define MIN_ARGS 1            // number of min args before print usage 
+#define MIN_ARGS 1            // number of min args before print usage
 #define MAX( a , b ) (( a ) > ( b ) ? ( a ) : ( b ))
 
 struct struct_bp {
   struct struct_bp * next;    /* linked list */
   unsigned int id;            /* id of the breakpoint */
   unsigned int type;          /* type of the esp i.e. 0-> addr, 1-> string */
+  unsigned int para;
   unsigned int esp;           /* gap between useful value and esp e.g. strcpy = 0x8 */
   char *name;                 /* name of the function */
-  unsigned int addr;          /* address of the function */
+  u_int64_t addr;             /* address of the function */
 } bp;
 
 struct struct_string {
@@ -32,9 +34,9 @@ typedef struct configuration {
   FILE *f_input;                /* input file */
   char *program;                /* pointer on the program name */
   FILE *f_gdb_dump;             /* gdb dump file */
-  char *gdb_dump;               /* name of the gdb dump file */ 
+  char *gdb_dump;               /* name of the gdb dump file */
   FILE *f_string_dump;             /* string dump file */
-  char *string_dump;               /* name of the string dump file */ 
+  char *string_dump;               /* name of the string dump file */
   char *args;                   /* pointer on the args of the program */
   int master;                   /* master of the pseudo terminal */
   int slave;                    /* slave of the pseudo terminal */

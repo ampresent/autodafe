@@ -1,8 +1,8 @@
-/*---------------------------------------------------------------------------*                                          
- *--- (c) Martin Vuagnoux, Cambridge University, UK.                      ---*                                          
- *---                                                            Jun.2004 ---*                                          
+/*---------------------------------------------------------------------------*
+ *--- (c) Martin Vuagnoux, Cambridge University, UK.                      ---*
+ *---                                                            Jun.2004 ---*
  *---------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------------*                                          
+/*---------------------------------------------------------------------------*
  * NAME       : engine.c
  * DESCRIPTION: fetch and parse the adc file
  *---------------------------------------------------------------------------*/
@@ -23,7 +23,7 @@
 #include "hash.h"
 #include "../../include/autodafe.h"
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: update_block_size
  * DESC: update each size of the opened blocks
  *---------------------------------------------------------------------------*/
@@ -33,17 +33,17 @@ void update_block_size(config *conf, unsigned int size) {
 
   /* debug */
   debug(1, "<-----------------------[enter]\n");
-  
+
   for(block=conf->block;block;block=block->next) {
     debug(3, "block[%d] checked if opened.\n", block->id);
 
     /* opened block */
     if (block->state == 0) {
-      debug(2, "block[%d] opened. Modify size: %d + %d -> %d\n", 
+      debug(2, "block[%d] opened. Modify size: %d + %d -> %d\n",
 	    block->id, block->size, size, block->size + size);
       block->size += size;
     }
-    else 
+    else
       debug(3, "block[%d] closed. size: %d\n", block->id, block->size);
   }
 
@@ -54,7 +54,7 @@ void update_block_size(config *conf, unsigned int size) {
 
 
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: push_data(config *conf, unsigned char *ptr, unsigned int size)
  * DESC: push data to the pkt buffer using realloc
  *---------------------------------------------------------------------------*/
@@ -80,8 +80,25 @@ void push_data(config *conf, unsigned char *ptr, unsigned int size) {
 
 }
 
+void insert_data(config *conf, unsigned char *ptr, unsigned int size, unsigned offset) {
 
-/*---------------------------------------------------------------------------*                                            
+    debug(1, "<---------------------[enter]\n");
+
+    unsigned char * tmp = malloc(conf->buf_fuzz_size + size);
+
+    memcpy(tmp, conf->buf_fuzz, offset);
+    memcpy(tmp + offset, ptr, size);
+    memcpy(tmp + offset + size, conf->buf_fuzz + offset, conf->buf_fuzz_size - offset);
+
+    free(conf->buf_fuzz);
+
+    conf->buf_fuzz = tmp;
+
+    debug(1, "<---------------------[quit]\n");
+}
+
+
+/*---------------------------------------------------------------------------*
  * NAME: modify_data
  * DESC: modify_data using offset in fuzz buffer
  *---------------------------------------------------------------------------*/
@@ -98,7 +115,7 @@ void modify_data(config *conf, unsigned char *ptr, unsigned int size, unsigned i
 }
 
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: push_length
  * DESC: add a length in the linked list length structure
  *---------------------------------------------------------------------------*/
@@ -127,7 +144,7 @@ void push_length(config *conf, unsigned int id, unsigned int type) {
 
   /* create a length entry in the linked list */
   length = malloc_(sizeof(struct struct_length));
-  
+
   /* update the previous block's field next */
   if (prev)
     prev->next = length;
@@ -146,27 +163,27 @@ void push_length(config *conf, unsigned int id, unsigned int type) {
   /* add the correct number of byte in the fuzz buffer */
   switch(type) {
   case HF_BLOCK_SIZE_B_32 : /* big-endian 32bits */
-    push_data(conf, (unsigned char *) &dummy_int, sizeof(int)); 
+    push_data(conf, (unsigned char *) &dummy_int, sizeof(int));
     break;
   case HF_BLOCK_SIZE_L_32 : /* little-endian 32bits */
-    push_data(conf, (unsigned char *) &dummy_int, sizeof(int)); 
-    break; 
+    push_data(conf, (unsigned char *) &dummy_int, sizeof(int));
+    break;
   case HF_BLOCK_SIZE_B_16 : /* big-endian 16bits */
-    push_data(conf, (unsigned char *) &dummy_short, sizeof(short)); 
-    break; 
+    push_data(conf, (unsigned char *) &dummy_short, sizeof(short));
+    break;
   case HF_BLOCK_SIZE_L_16 : /* little-endian 16bits */
-    push_data(conf, (unsigned char *) &dummy_short, sizeof(short)); 
-    break; 
+    push_data(conf, (unsigned char *) &dummy_short, sizeof(short));
+    break;
   case HF_BLOCK_SIZE_8 :    /* 8bits */
-    push_data(conf, &dummy_char, sizeof(char)); 
-    break; 
+    push_data(conf, &dummy_char, sizeof(char));
+    break;
   case HF_BLOCK_SIZE_S_16 : /* string in hexadecimal */
-    /* don't add bytes in buffer now. See after */ 
+    /* don't add bytes in buffer now. See after */
     break;
   case HF_BLOCK_SIZE_S_10 : /* string in decimal */
-    /* don't add bytes in buffer now. See after */ 
+    /* don't add bytes in buffer now. See after */
     break;
-  default: /* should never happen */ 
+  default: /* should never happen */
     break;
   }
 
@@ -176,7 +193,7 @@ void push_length(config *conf, unsigned int id, unsigned int type) {
 }
 
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: push_hash
  * DESC: add a hash in the linked list hash structure
  *---------------------------------------------------------------------------*/
@@ -201,7 +218,7 @@ void push_hash(config *conf, unsigned int id, unsigned int type) {
 
   /* create a hash entry in the linked list */
   hash = malloc_(sizeof(struct struct_hash));
-  
+
   /* update the previous block's field next */
   if (prev)
     prev->next = hash;
@@ -220,13 +237,13 @@ void push_hash(config *conf, unsigned int id, unsigned int type) {
   /* add the correct number of byte in the fuzz buffer */
   switch(type) {
   case HF_BLOCK_CRC32_B : /* big-endian 32 bits */
-    push_data(conf, (unsigned char *) &dummy_int, sizeof(int)); 
+    push_data(conf, (unsigned char *) &dummy_int, sizeof(int));
     break;
   case HF_BLOCK_CRC32_L : /* little-endian 32 bits */
-    push_data(conf, (unsigned char *) &dummy_int, sizeof(int)); 
+    push_data(conf, (unsigned char *) &dummy_int, sizeof(int));
     break;
 
-  default: /* should never happen */ 
+  default: /* should never happen */
     break;
   }
 
@@ -236,7 +253,7 @@ void push_hash(config *conf, unsigned int id, unsigned int type) {
 }
 
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: read_buffer_char
  * DESC: give one char in the buffer using the offset
  *---------------------------------------------------------------------------*/
@@ -261,10 +278,10 @@ unsigned char read_buffer_char(config *conf) {
 }
 
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: read_buffer_int
  * DESC: give one int in the buffer using the offset in local-endian format
- *       because, mainly used for the computation of the size -> compared 
+ *       because, mainly used for the computation of the size -> compared
  *       with an id which is in the local-endian type too. (ntohl used)
  *---------------------------------------------------------------------------*/
 unsigned int read_buffer_int(config *conf) {
@@ -284,7 +301,7 @@ unsigned int read_buffer_int(config *conf) {
   result += buffer[conf->adc->offset + 2] << 16;
   result += buffer[conf->adc->offset + 3] << 24;
 
-  
+
   debug(3, "reading ntohl(int): 0x%x at addr: %p\n", ntohl(result), conf->adc->offset);
 
   /* update offset */
@@ -299,16 +316,17 @@ unsigned int read_buffer_int(config *conf) {
 
 
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: update_length
  * DESC: update each length value, even string length (tricky!)
  *---------------------------------------------------------------------------*/
 void update_length(config *conf) {
-  
+
   struct struct_length *length;
   struct struct_block  *block;
   unsigned int int_big_endian;
   unsigned int int_little_endian;
+  char size_string[15];
 
   /* debug */
   debug(1, "<-----------------------[enter]\n");
@@ -331,7 +349,8 @@ void update_length(config *conf) {
 	memcpy((unsigned char*) &int_little_endian + 1, (unsigned char *) &int_big_endian + 2, sizeof(char));
 	memcpy((unsigned char*) &int_little_endian + 2, (unsigned char *) &int_big_endian + 1, sizeof(char));
 	memcpy((unsigned char*) &int_little_endian + 3, (unsigned char *) &int_big_endian, sizeof(char));
-	
+    snprintf(size_string, sizeof(size_string), "%d", block->size);
+
 	switch(length->type) {
 
 	case HF_BLOCK_SIZE_B_32 : /* big-endian 32bits */
@@ -340,7 +359,7 @@ void update_length(config *conf) {
 		*(conf->buf_fuzz + length->offset),
 		*(conf->buf_fuzz + length->offset+1),
 		*(conf->buf_fuzz + length->offset+2),
-		*(conf->buf_fuzz + length->offset+3)); 
+		*(conf->buf_fuzz + length->offset+3));
 	  break;
 	case HF_BLOCK_SIZE_L_32 : /* little-endian 32bits */
 	  modify_data(conf, (unsigned char *) &int_little_endian, sizeof(int), length->offset);
@@ -348,37 +367,36 @@ void update_length(config *conf) {
 		*(conf->buf_fuzz + length->offset),
 		*(conf->buf_fuzz + length->offset+1),
 		*(conf->buf_fuzz + length->offset+2),
-		*(conf->buf_fuzz + length->offset+3)); 
+		*(conf->buf_fuzz + length->offset+3));
 
-	  break; 
+	  break;
 	case HF_BLOCK_SIZE_B_16 : /* big-endian 16bits */
 	  modify_data(conf, (unsigned char *) &int_big_endian + 2, sizeof(short), length->offset);
 	  debug(3, "big-endian-16b length: 0x%02x%02x\n",
 		*(conf->buf_fuzz + length->offset),
-		*(conf->buf_fuzz + length->offset+1)); 
+		*(conf->buf_fuzz + length->offset+1));
 
-	  break; 
+	  break;
 	case HF_BLOCK_SIZE_L_16 : /* little-endian 16bits */
 	  modify_data(conf, (unsigned char *) &int_little_endian + 2, sizeof(short), length->offset);
 	  debug(3, "big-endian-16b length: 0x%02x%02x\n",
 		*(conf->buf_fuzz + length->offset),
-		*(conf->buf_fuzz + length->offset+1)); 
-	  break; 
+		*(conf->buf_fuzz + length->offset+1));
+	  break;
 	case HF_BLOCK_SIZE_8 :    /* 8bits */
 	  modify_data(conf, (unsigned char *) &int_big_endian + 3, sizeof(char), length->offset);
 	  debug(3, "8b length : 0x%02x\n", *(conf->buf_fuzz + length->offset));
-	  break; 
+	  break;
 	case HF_BLOCK_SIZE_S_16 : /* string in hexadecimal */
-
 	  /* TODOXXXFIXMEXXX */
 	  break;
 	case HF_BLOCK_SIZE_S_10 : /* string in decimal */
-	  
+      insert_data(conf, size_string, strnlen(size_string, sizeof(size_string)), length->offset);
 	  /* TODOXXXFIXMEXXX */
 	  break;
-	default: /* should never happen */ 
+	default: /* should never happen */
 	  break;
-	  
+
 	}
 	break; /* optimization 8^) */
       }
@@ -390,12 +408,12 @@ void update_length(config *conf) {
 
 }
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: update_hash
  * DESC: update each hash value.
  *---------------------------------------------------------------------------*/
 void update_hash(config *conf) {
-  
+
   struct struct_hash *hash;
   struct struct_block  *block;
   unsigned int int_big_endian;
@@ -427,12 +445,12 @@ void update_hash(config *conf) {
 
           /* write the hash value */
           modify_data(conf, (unsigned char *) &int_big_endian, sizeof(int), hash->offset);
-	  
+
 	  debug(3, "big-endian-32b CRC32 hash: 0x%02x%02x%02x%02x\n",
 		*(conf->buf_fuzz + hash->offset),
 		*(conf->buf_fuzz + hash->offset+1),
 		*(conf->buf_fuzz + hash->offset+2),
-		*(conf->buf_fuzz + hash->offset+3)); 
+		*(conf->buf_fuzz + hash->offset+3));
 
 	  break;
 
@@ -458,12 +476,12 @@ void update_hash(config *conf) {
 		*(conf->buf_fuzz + hash->offset),
 		*(conf->buf_fuzz + hash->offset+1),
 		*(conf->buf_fuzz + hash->offset+2),
-		*(conf->buf_fuzz + hash->offset+3)); 
+		*(conf->buf_fuzz + hash->offset+3));
 	  break;
 
-	default: /* should never happen */ 
+	default: /* should never happen */
 	  break;
-	  
+
 	}
 	break; /* optimization 8^) */
       }
@@ -477,7 +495,7 @@ void update_hash(config *conf) {
 
 
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: fetch_instruction
  * DESC: fetch each instructions and fill block and fuzz structures
  *---------------------------------------------------------------------------*/
@@ -527,12 +545,12 @@ unsigned int fetch_instruction(config *conf) {
   return 0;
 }
 
-/*---------------------------------------------------------------------------*  
- * NAME: start_fuzz()                                   
+/*---------------------------------------------------------------------------*
+ * NAME: start_fuzz()
  * DESC: send the fuzz buffer in a file or in a tcp/udp connection
  * RETN: 0 if everything is ok
  *       1 if sendto detects a Broken pipe (connection closed by foreign host)
- *       2 if recv_from receive 0 bytes    (connection closed by foreign host) 
+ *       2 if recv_from receive 0 bytes    (connection closed by foreign host)
  *      -1 if error
  *---------------------------------------------------------------------------*/
 int start_fuzz(config *conf) {
@@ -546,8 +564,8 @@ int start_fuzz(config *conf) {
     else             return server_fuzz(conf); /* server mode */
   }
 
-  /* FILE connection */  
-  else if (conf->type == 2) 
+  /* FILE connection */
+  else if (conf->type == 2)
     return file_fuzz(conf);
 
   /* should never happen (unknown type) */
@@ -555,7 +573,7 @@ int start_fuzz(config *conf) {
 }
 
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: fuzz_finished
  * DESC: return 0 if not finished, otherwise return 1
  *---------------------------------------------------------------------------*/
@@ -582,7 +600,7 @@ unsigned int fuzz_finished(config *conf) {
   return 1;
 }
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: fuzz_core
  * DESC: the heart of the fuzzing function.
  *
@@ -624,7 +642,7 @@ struct struct_fuzz *fuzz_core(config *conf, unsigned int id, unsigned char *file
     fuzz->id = id;
     fuzz->current = 0;
     fuzz->weight = weight;
-    
+
     /* update previous entry */
     if (prev) prev->next = fuzz;
 
@@ -644,7 +662,7 @@ struct struct_fuzz *fuzz_core(config *conf, unsigned int id, unsigned char *file
   /* there is an entry */
   else {
     debug(2, "fuzz[%d] found\n", fuzz->id);
-    
+
     /* we are currently fuzzing this structure */
     if (conf->fuzz_current == fuzz->id) {
 
@@ -657,7 +675,7 @@ struct struct_fuzz *fuzz_core(config *conf, unsigned int id, unsigned char *file
 	fuzz->current = fuzz->total;
 	verbose_("[!] this fuzz is *NOT* relevant, we don't fuzz id: %d\n", fuzz->id);
       }
-      
+
       /* there is something to fuzz */
       if (fuzz->current < fuzz->total) {
 
@@ -671,7 +689,7 @@ struct struct_fuzz *fuzz_core(config *conf, unsigned int id, unsigned char *file
 	  }
 	}
 
-	debug(3,"we catch the source->id: %d and fuzz->current: %d\n", source->id, fuzz->current); 
+	debug(3,"we catch the source->id: %d and fuzz->current: %d\n", source->id, fuzz->current);
 	debug(3,"try to open the file: \"%s\"\n", source->filename);
 	/* open the file */
 	file = fopen(source->filename, "r");
@@ -714,7 +732,7 @@ struct struct_fuzz *fuzz_core(config *conf, unsigned int id, unsigned char *file
       }
 
       /* we can fuzz the next structure */
-      conf->fuzz_current++; 
+      conf->fuzz_current++;
       debug(2, "we have fuzzed all the data for this function...\n");
       return 0;
     }
@@ -728,7 +746,7 @@ struct struct_fuzz *fuzz_core(config *conf, unsigned int id, unsigned char *file
 }
 
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: free_block
  * DESC: free all the linked block structure
  *---------------------------------------------------------------------------*/
@@ -737,7 +755,7 @@ void free_block(config *conf) {
   /* debug */
   debug(1, "<-----------------------[enter]\n");
 
-  if (conf->block) {   
+  if (conf->block) {
     struct struct_block *block;
     struct struct_block *block_to_free;
     block = conf->block;
@@ -755,7 +773,7 @@ void free_block(config *conf) {
 
 }
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: free_length
  * DESC: free all the linked length structure
  *---------------------------------------------------------------------------*/
@@ -764,7 +782,7 @@ void free_length(config *conf) {
   /* debug */
   debug(1, "<-----------------------[enter]\n");
 
-  if (conf->length) {   
+  if (conf->length) {
     struct struct_length *length;
     struct struct_length *length_to_free;
     length = conf->length;
@@ -782,7 +800,7 @@ void free_length(config *conf) {
 
 }
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: free_hash
  * DESC: free all the linked hash structure
  *---------------------------------------------------------------------------*/
@@ -791,7 +809,7 @@ void free_hash(config *conf) {
   /* debug */
   debug(1, "<-----------------------[enter]\n");
 
-  if (conf->hash) {   
+  if (conf->hash) {
     struct struct_hash *hash;
     struct struct_hash *hash_to_free;
     hash = conf->hash;
@@ -809,7 +827,7 @@ void free_hash(config *conf) {
 
 }
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: free_chrono
  * DESC: free all the linked chrono structure
  *---------------------------------------------------------------------------*/
@@ -818,7 +836,7 @@ void free_chrono(config *conf) {
   /* debug */
   debug(1, "<-----------------------[enter]\n");
 
-  if (conf->chrono) {   
+  if (conf->chrono) {
     struct struct_chrono *chrono;
     struct struct_chrono *chrono_to_free;
     chrono = conf->chrono;
@@ -837,7 +855,7 @@ void free_chrono(config *conf) {
 
 }
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: fuzz_engine
  * DESC: fetch and parse each ad instructions
  *---------------------------------------------------------------------------*/
@@ -860,7 +878,7 @@ unsigned int fuzz_engine(config *conf) {
     while (conf->adc->offset < conf->adc->size) {
 
       /* fetch the instruction */
-      if (fetch_instruction(conf)) return -200; 
+      if (fetch_instruction(conf)) return -200;
     }
 
     /* compute the lengths */
@@ -869,20 +887,20 @@ unsigned int fuzz_engine(config *conf) {
     /* compute the hash values */
     update_hash(conf);
 
-    /* send the start message to the debugger. i.e. the fuzzer cannot speak 
+    /* send the start message to the debugger. i.e. the fuzzer cannot speak
        with the debugger anymore, only the debugger send messages to the fuzzer */
     if ((conf->dbg_mode) && (!conf->ring_zero))
       if (dbg_send_msg(conf, INET_START_A_MSG, 0 , NULL, 0)) return -1;
-    
+
     /* start the fuzzing */
     result = start_fuzz(conf);
-    
+
     if (result == -1)
       error_occured = 1;
 
     /* free the (big) fuzz buffer */
-    if (conf->buf_fuzz) { 
-      free(conf->buf_fuzz); 
+    if (conf->buf_fuzz) {
+      free(conf->buf_fuzz);
       conf->buf_fuzz = NULL;
     }
 
@@ -934,7 +952,7 @@ unsigned int fuzz_engine(config *conf) {
       if (fuzz_to_free->source) {
 	struct struct_source *source;
 	struct struct_source *source_to_free;
-	source = fuzz_to_free->source;	
+	source = fuzz_to_free->source;
 	/* free the filename first */
 
 
