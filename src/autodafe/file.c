@@ -11,19 +11,20 @@
 #include <stdarg.h>
 #include <stdlib.h>    /* malloc */
 #include <string.h>    /* memcmp */
+#include <limits.h>
+#include <linux/limits.h>
+#include <errno.h>
+
+
 
 #include <sys/types.h> /* stat */
 #include <sys/stat.h>  /* stat */
 #include <unistd.h>    /* stat */
 
-#include <linux/limits.h>
-
 #include "debug.h"
 #include "conf.h"
 #include "chrono.h"
 #include "../../include/autodafe.h"
-
-
 
 /*---------------------------------------------------------------------------*
  * NAME: check_directory
@@ -38,7 +39,7 @@ int check_directory(config *conf) {
   debug(1, "<-----------------------[enter]\n");
 
   /* check the length of the directory - useless but ... */
-  if (strlen(conf->fuzz_file_dir) >= PATH_MAX - 16) {
+  if (strlen(  conf->fuzz_file_dir) >= (PATH_MAX - 16)) {
     error_("error path too long\n");
     error_("QUITTING!\n");
     return -1;
@@ -329,7 +330,7 @@ int file_fuzz(config *conf) {
  *       return  0 do continue (used in fill_source - useless line, skip)
  *       return -1 if Error (quit)
  *---------------------------------------------------------------------------*/
-int check_fuzz_source(unsigned char *temp) {
+int check_fuzz_source(char *temp) {
   FILE *test_file;
 
   struct stat my_stat;
@@ -406,7 +407,7 @@ int check_fuzz_source(unsigned char *temp) {
  *       return  1 do continue
  *       return -1 if Error (quit)
  *---------------------------------------------------------------------------*/
-int check_index_source(unsigned char *filename, unsigned char *temp, unsigned int temp_size) {
+int check_index_source(char *filename, char *temp, unsigned int temp_size) {
   int i;
   int j;
 
@@ -488,16 +489,16 @@ int check_index_source(unsigned char *filename, unsigned char *temp, unsigned in
  * RETN: return  number of line (exploitable) of the file
  *       return -1 if Error (quit)
  *---------------------------------------------------------------------------*/
-int fill_source(struct struct_fuzz *fuzz, unsigned char *filename) {
+int fill_source(struct struct_fuzz *fuzz, char *filename) {
 
   FILE *index_file;
   struct stat my_stat;
   struct stat *st;
 
-  unsigned char temp[FILENAME_MAX]; /* 4096 in Linux */
+  char temp[FILENAME_MAX]; /* 4096 in Linux */
   int id = 0;
 
-  unsigned char *result;
+  char *result;
   int result_int;
 
   struct struct_source *source;

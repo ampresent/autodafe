@@ -6,8 +6,8 @@
  * NAME       : fuzzer.c
  * DESCRIPTION: main fuzzer engine. Read a .adc file and fuzz a server/client
  *              or file.
- * DEPENDANCES: 
- * COMPILATION: 
+ * DEPENDANCES:
+ * COMPILATION:
  *---------------------------------------------------------------------------*/
 
 
@@ -45,8 +45,8 @@ static void sigpipe_handler(int signo) {
  * DESC: Print the version of the program
  *---------------------------------------------------------------------------*/
 void version(char **argv) {
-  fprintf(stdout, "%s-v.%d.%d ", argv[0], MAJOR_VERSION, MINOR_VERSION ); 
-  fprintf(stdout, "(c) 2004-2006 "NAME" <"EMAIL">\n\n");
+  fprintf(stdout, "%s-v.%d.%d ", argv[0], MAJOR_VERSION, MINOR_VERSION );
+  fprintf(stdout, "(c) 2004-2007 "NAME" <"EMAIL">\n\n");
 }
 
 /*---------------------------------------------------------------------------*
@@ -87,10 +87,10 @@ void usage(char **argv, config *conf) {
 /*---------------------------------------------------------------------------*
  * NAME: parsing_args
  * DESC: Parse the arguments using getopt_long return the first non-optionnal
- *       index in argv[]. 
+ *       index in argv[].
  *---------------------------------------------------------------------------*/
 unsigned int parsing_args(int argc, char **argv, config *conf) {
-  
+
   static struct option long_options[] = {
     {"help", 0, NULL, 'h'},
     {"version", 0, NULL, 'V'},
@@ -116,10 +116,10 @@ unsigned int parsing_args(int argc, char **argv, config *conf) {
     debug(3, "Not enough argument\n");
     usage(argv, conf);
   }
-  
+
   while (1) {
     c = getopt_long(argc, argv, options, long_options, &option_index);
-    if (c == -1) 
+    if (c == -1)
       break;
 
     /* check the arguments */
@@ -199,8 +199,8 @@ unsigned int parsing_args(int argc, char **argv, config *conf) {
   return optind;
 }
 
-/*---------------------------------------------------------------------------* 
- * NAME: init_configuration  
+/*---------------------------------------------------------------------------*
+ * NAME: init_configuration
  * DESC: Initialize with the default values the configuration structure
  *---------------------------------------------------------------------------*/
 void init_configuration(config *conf) {
@@ -213,7 +213,7 @@ void init_configuration(config *conf) {
   conf->timeout = 0;     /* default is NO timeout */
 
   /* init */
-  conf->ring_zero = 0; 
+  conf->ring_zero = 0;
   conf->dbg_host = NULL;
   conf->dbg_port = 0;
   conf->fuzz_current = 0;
@@ -261,14 +261,14 @@ int main(int argc, char **argv) {
   /* check if selected mode is well defined (dirty) */
   if (
       /* client mode -> port AND host */
-      ((conf->mode == 0) && ((conf->port == 0) || 
+      ((conf->mode == 0) && ((conf->port == 0) ||
 			     (conf->host == NULL)))
       ||
       /* server mode -> port */
       ((conf->mode == 1) && (conf->port == 0))
       ||
       /* no file.ad defined */
-      (argv[first_arg] == NULL) 
+      (argv[first_arg] == NULL)
       ||
       /* debugger and file */
       ((conf->type == 2) && (conf->dbg_mode))
@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
       ) {
     usage(argv, conf);
   }
-  
+
   /* verbose messages */
 
   /* autodafe's debugger */
@@ -316,7 +316,7 @@ int main(int argc, char **argv) {
 
 
   /* start the connection with the debugger */
-  if (conf->dbg_mode) 
+  if (conf->dbg_mode)
     if (dbg_connection(conf)) goto fuzzer_end;
 
   /* start the fuzz engine */
@@ -328,6 +328,6 @@ int main(int argc, char **argv) {
   if (conf->adc->buffer) free(conf->adc->buffer); /* free the memory-copy of adc file */
   if (conf->adc)         free(conf->adc);         /* free the adc structure */
   if (conf)              free(conf);              /* free the configuration structure */
-  
+
   return 0;
 }

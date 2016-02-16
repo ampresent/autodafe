@@ -5,8 +5,8 @@
 /*---------------------------------------------------------------------------*
  * NAME       : network.c
  * DESCRIPTION: All the functions used to communicate with the fuzzer
- * DEPENDANCES: 
- * COMPILATION: 
+ * DEPENDANCES:
+ * COMPILATION:
  *---------------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -200,10 +200,10 @@ void inet_decode_msg(config *conf, unsigned int opcode) {
   int minor = 0;
   unsigned int id = 0;
   unsigned int size = 0;
-  unsigned char *recv_string;
+  char *recv_string;
   struct struct_string *string;
   struct struct_string *prev = NULL;
-  
+
   /* debug */
   debug(1, "<-----------------------[enter]\n");
 
@@ -219,12 +219,12 @@ void inet_decode_msg(config *conf, unsigned int opcode) {
 
     /* check version */
     if ((ntohl(major) != MAJOR_VERSION) || (ntohl(minor) != MINOR_VERSION)) {
-      error_("incompatible version between fuzzer (v.%d.%d) and debugger (v.%d.%d)\n", 
+      error_("incompatible version between fuzzer (v.%d.%d) and debugger (v.%d.%d)\n",
 	     major, minor, MAJOR_VERSION, MINOR_VERSION);
       error_("QUITTING!\n");
       exit(-1);
     }
-    
+
     /* verbose */
     verbose_("[*] fuzzer authenticated and connected. (v.%d.%d)\n", MAJOR_VERSION, MINOR_VERSION);
 
@@ -278,7 +278,7 @@ void inet_decode_msg(config *conf, unsigned int opcode) {
 	goto send_ack;
       }
     }
-    
+
     /* create the new entry */
     string = malloc_(sizeof(struct struct_string));
 
@@ -287,7 +287,7 @@ void inet_decode_msg(config *conf, unsigned int opcode) {
 
     /* init the structure */
     string->next = NULL;
-    string->string = recv_string; 
+    string->string = recv_string;
     string->id = id;
 
     /* update the previous entry */
@@ -308,7 +308,7 @@ void inet_decode_msg(config *conf, unsigned int opcode) {
     exit(-1);
   }
 
-  
+
  send_ack:
 
   /* for theses messages, the fuzzer wait for an INET_ACK_MSG */
@@ -373,7 +373,7 @@ void inet_connection(config *conf) {
     opcode = inet_fetch_msg(conf);
     inet_decode_msg(conf, opcode);
   } while(opcode != INET_START_A_MSG);
-  
+
   /* debug */
   debug(1, "<-----------------------[quit]\n");
 }

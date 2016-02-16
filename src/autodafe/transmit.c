@@ -1,8 +1,8 @@
-/*---------------------------------------------------------------------------*                                          
- *--- (c) Martin Vuagnoux, Cambridge University, UK.                      ---*                                          
- *---                                                            Aug.2004 ---*                                          
+/*---------------------------------------------------------------------------*
+ *--- (c) Martin Vuagnoux, Cambridge University, UK.                      ---*
+ *---                                                            Aug.2004 ---*
  *---------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------------*                                          
+/*---------------------------------------------------------------------------*
  * NAME       : transmit.c
  * DESCRIPTION: all the transmission related functions
  *---------------------------------------------------------------------------*/
@@ -24,15 +24,15 @@
 
 #include "debug.h"
 #include "conf.h"
-#include "chrono.h"     
+#include "chrono.h"
 #include "dbg.h"
 
 extern struct sockaddr_in server; /* needed between send/recv_fuzz and client/server_fuzz */
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: send_fuzz()
  * DESC: send a buffer using tcp/udp or file method:
- *       tcp/udp: use sendto 
+ *       tcp/udp: use sendto
  * RETN: >=0 if everything is OK
  *        -1 if there is a big error (not recoverable)
  *        -2 connection closed by foreign host.
@@ -53,16 +53,16 @@ int send_fuzz(config *conf, struct struct_block *block) {
   }
   /* send using sendto (compatible tcp *and* udp) */
   else {
-    bytes = sendto(conf->socket, 
-		   conf->buf_fuzz + block->offset, 
-		   block->size, 
+    bytes = sendto(conf->socket,
+		   conf->buf_fuzz + block->offset,
+		   block->size,
 		   0,
-		   (struct sockaddr *)&(server), 
+		   (struct sockaddr *)&(server),
 		   sizeof(server));
     debug(1, "send_fuzz bytes: %d\n", bytes);
 
     if (bytes == -1) {
-      
+
       /* this is a "Broken pipe" ie: connection closed by foreign host. We
 	 detect it and reconnect to the server with return value -2 */
       if (errno == EPIPE) { /* EPIPE = 32 cf. /usr/include/asm/errno.h */
@@ -81,27 +81,27 @@ int send_fuzz(config *conf, struct struct_block *block) {
       fd_set rfds;
       struct timeval tv;
       int retval;
-      
+
       tv.tv_sec = DBG_TIMEOUT_SEC;
       tv.tv_usec = DBG_TIMEOUT_USEC;
       FD_ZERO(&rfds);
       FD_SET(conf->dbg_socket, &rfds);
       retval = select(conf->dbg_socket+1, &rfds, NULL, NULL, &tv);
-      
+
       /* error */
       if (retval == -1) {
 	error_("select error: ");
 	perror("");
 	return -1;
       }
-      
+
       /* there is something from the dbg */
       if (retval) {
 	verbose_("[*] the debugger has something to say!\n");
-	
+
 	if (dbg_read_msg(conf)) bytes = -1;
 
-      } 
+      }
     }
   }
 
@@ -112,7 +112,7 @@ int send_fuzz(config *conf, struct struct_block *block) {
 }
 
 
-/*---------------------------------------------------------------------------*                                            
+/*---------------------------------------------------------------------------*
  * NAME: recv_fuzz()
  * DESC: recv a buffer using tcp/udp or file method:
  *       tcp/udp: use recvfrom
@@ -155,12 +155,12 @@ int recv_fuzz(config *conf, struct struct_block *block, unsigned char *buffer) {
 
       len = sizeof(server);
       debug(3, "len: %d\n", len);
-      debug(3, "block->size :%d\n", block->size); 
-      bytes = recvfrom(conf->socket, 
-		       buffer, 
-		       block->size, 
-		       0, 
-		       (struct sockaddr *)&server, 
+      debug(3, "block->size :%d\n", block->size);
+      bytes = recvfrom(conf->socket,
+		       buffer,
+		       block->size,
+		       0,
+		       (struct sockaddr *)&server,
 		       &len);
       debug(1, "recv_fuzz bytes: %d\n", bytes);
       if (bytes == -1) {
@@ -187,4 +187,6 @@ int recv_fuzz(config *conf, struct struct_block *block, unsigned char *buffer) {
       return 0;
     }
   }
+  /* TODOXXXFIXMEXXX: verify if OK */
+  return -1;
 }

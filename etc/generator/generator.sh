@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # script used to create the fuzz dictionary. Basic functions.
 # need perl (famous perl -e '...')
 # 
@@ -75,7 +75,7 @@ if [ -d $1 ]
         "\\"    \
 	
       do
-      echo -ne "[*] processing: \"$i\"\t\t 0%["
+      echo -n "[*] processing: \"$i\"\t\t 0%["
       counter=`expr $counter + 1`
       for j in 3 4 15 16 31 32 63 64 127 128 255 256 511 512 1023 1024 2047 2048 \
 	       4095 4096 8191 8192 16383 16384 32767 32768 65535 65536 99999
@@ -100,13 +100,14 @@ if [ -d $1 ]
 	echo -n ";" > ./autodafe/string/string-$counter-sc-x$j
 	./overflow  $j "$i" >> ./autodafe/string/string-$counter-sc-x$j
 
-	echo -e "$1/autodafe/string/string-$counter-x$j \t# \"$i\" x $j" >> ./autodafe/string.fuzz
-	echo -e "$1/autodafe/string/string-$counter-sp-x$j \t# <space>\"$i\" x $j" >> ./autodafe/string.fuzz
-	echo -e "$1/autodafe/string/string-$counter-geq-x$j \t# \">\" \"$i\" x $j" >> ./autodafe/string.fuzz
-	echo -e "$1/autodafe/string/string-$counter-leq-x$j \t# \"<\" \"$i\" x $j" >> ./autodafe/string.fuzz
-	echo -e "$1/autodafe/string/string-$counter-sc-x$j \t# \";\" \"$i\" x $j" >> ./autodafe/string.fuzz
+	echo  "$1/autodafe/string/string-$counter-x$j \t# \"$i\" x $j" >> ./autodafe/string.fuzz
+	echo  "$1/autodafe/string/string-$counter-sp-x$j \t# <space>\"$i\" x $j" >> ./autodafe/string.fuzz
+	echo  "$1/autodafe/string/string-$counter-geq-x$j \t# \">\" \"$i\" x $j" >> ./autodafe/string.fuzz
+	echo  "$1/autodafe/string/string-$counter-leq-x$j \t# \"<\" \"$i\" x $j" >> ./autodafe/string.fuzz
+	echo  "$1/autodafe/string/string-$counter-sc-x$j \t# \";\" \"$i\" x $j" >> ./autodafe/string.fuzz
 	echo -n "."
       done;
-      echo "]100%"
+      echo -n "]100%"
+      echo 
     done;
 fi

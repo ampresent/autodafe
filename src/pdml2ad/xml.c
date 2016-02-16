@@ -28,8 +28,8 @@
  *       the name of the selected field, and the name of the attribute (attr)
  * WARN: You have to free the returned pointer! ******************************
  *---------------------------------------------------------------------------*/
-xmlChar * xml_parse_field(xmlNodePtr cur_orig, unsigned int level, char *name, char *attr) {
-  
+xmlChar * xml_parse_field(xmlNodePtr cur_orig, unsigned int level, xmlChar *name, xmlChar *attr) {
+
   int i;
   xmlChar *value;
   xmlChar *attrib;
@@ -47,16 +47,16 @@ xmlChar * xml_parse_field(xmlNodePtr cur_orig, unsigned int level, char *name, c
     if (!(xmlStrcmp(cur->name, (const xmlChar *) "field"))) {
 
       /* check the name */
-      attrib = xmlGetProp(cur, "name");
+      attrib = xmlGetProp(cur, (const xmlChar*) "name");
       if (attrib != NULL) {
-	if (!strncmp(attrib, name, strlen(attrib))) {
-	  
+	if (!strncmp((char*) attrib, (char*) name, strlen( (char*) attrib))) {
+
 	  /* retrieve the attribute's value */
 	  value = xmlGetProp(cur, attr);
 	  debug(3, "%s->%s found: %s\n", name, attr, value);
 	  xmlFree(attrib);
 	  return value;
-	} 
+	}
 	xmlFree(attrib);
       }
     }
@@ -77,14 +77,14 @@ void xml_parse_raw_data(config *conf, xmlNodePtr cur_orig) {
   int ret_value;
 
   /* check the data value */
-  value = xml_parse_field(cur_orig, 0, "data", "value");
+  value = xml_parse_field(cur_orig, 0, (xmlChar *) "data", (xmlChar *) "value");
   if (!value) {
     debug(3, "no data information in this packet\n");
     return;
   }
-   
+
   debug(3, "raw data: %s\n", value);
-  
+
   if (conf->check_string) {
     ret_value = recover_raw_string(conf, value);
 
@@ -95,11 +95,11 @@ void xml_parse_raw_data(config *conf, xmlNodePtr cur_orig) {
 	output_tab_ether(conf->tab, value);
 	output_tab_(conf->tab, ");\n");
       }
-      else 
+      else
 	output_tab_(conf->tab, AD_F_HEX"(%s);\n", value);
 
     }
-    
+
     /* it can be a string without \x0a at the end */
     else if (ret_value == 1) {
       if (conf->ethereal_hex_style) {
@@ -107,21 +107,21 @@ void xml_parse_raw_data(config *conf, xmlNodePtr cur_orig) {
 	output_tab_ether(conf->tab, value);
 	output_tab_(conf->tab, ");\n");
       }
-      else 
+      else
 	output_tab_(conf->tab, AD_F_HEX"(%s);\n", value);
-      
-      
+
+
 
     }
-    
+
     /* it's definitely a string */
-    else if (ret_value == 100) { 
+    else if (ret_value == 100) {
       /* to nothing, it's has been done by the function recover_raw_string */
     }
-    
+
   }
 
-  
+
   else {
     if (conf->ethereal_hex_style) {
       output_tab_(conf->tab, AD_F_HEX"(\n");
@@ -131,10 +131,10 @@ void xml_parse_raw_data(config *conf, xmlNodePtr cur_orig) {
     else
       output_tab_(conf->tab, AD_F_HEX"(%s);\n", value);
   }
-  
+
   /* free the value */
   xmlFree(value);
-  
+
 }
 
 
@@ -151,6 +151,7 @@ void xml_parse_proto(config *conf, xmlNodePtr cur_orig) {
   xmlChar *size;
   xmlChar *pos;
   xmlChar *showname;
+  xmlChar *unmaskedvalue;
 
   int checked_string;
   unsigned int length;
@@ -165,6 +166,7 @@ void xml_parse_proto(config *conf, xmlNodePtr cur_orig) {
       size     = xmlGetProp(cur, "size");
       pos      = xmlGetProp(cur, "pos");
       showname = xmlGetProp(cur, "showname");
+      unmaskedvalue = xmlGetProp(cur, "unmaskedvalue");
 
       debug(2, "name    :%s\n", name);
       debug(2, "show    :%s\n", show);
@@ -172,19 +174,19 @@ void xml_parse_proto(config *conf, xmlNodePtr cur_orig) {
       debug(2, "size    :%s\n", size);
       debug(2, "pos     :%s\n", pos);
       debug(2, "showname:%s\n", showname);
-      
+
       /* has some children ? */
       if (cur->children) {
 	conf->tab++;
 	debug(3, "children of %s detected\n", name);
-	
+
 	/* create a new block */
-	output_tab_(conf->tab, AD_F_BLOCK_BEGIN"(\"packet_%d.%d.%s.%s\");\n", 
+	output_tab_(conf->tab, AD_F_BLOCK_BEGIN"(\"packet_%d.%d.%s.%s\");\n",
 		    conf->packet_counter,
 		    conf->proto_counter,
 		    pos, name);
 	xml_parse_proto(conf,cur->children);
-	output_tab_(conf->tab, AD_F_BLOCK_END"(\"packet_%d.%d.%s.%s\");\n", 
+	output_tab_(conf->tab, AD_F_BLOCK_END"(\"packet_%d.%d.%s.%s\");\n",
 		    conf->packet_counter,
 		    conf->proto_counter,
 		    pos, name);
@@ -193,29 +195,61 @@ void xml_parse_proto(config *conf, xmlNodePtr cur_orig) {
 
       /* leaf of the tree, we record the content of value */
       else {
-	
+
 	/* write in the output field */
 	conf->tab++;
 
+	/* BUG0001 */
+	/* detection of "unmaskedvalue" is equivalent to have bit-wise flags */
+	if (unmaskedvalue != 0) {
+	  verbose_("[*] FLAG (bit-wise) detected: %s\n", name);
+
+	  /* we check the flag position: first = writing value */
+	  if ((atoi(pos)) > conf->previous_pos) {
+
+	    /* write in the .ad file that it is a flag */
+	    output_tab_(conf->tab,   "\n");
+	    output_tab_(conf->tab,   "// *** FLAG DETECTED: see below for the description\n");
+	    /* we write the unmasked value */
+	    if (conf->ethereal_hex_style) {
+	      output_tab_(conf->tab, AD_F_HEX"(\n");
+	      output_tab_ether(conf->tab, unmaskedvalue);
+	      output_tab_(conf->tab, ");\n");
+	    }
+	    else
+	      output_tab_(conf->tab, AD_F_HEX"(%s);\n", unmaskedvalue);
+	  }
+
+	  /* then we add comments */
+	  output_tab_(conf->tab+1,   "//  *** FLAG +- name    : %s\n", name);
+	  output_tab_(conf->tab+1,   "//  *** FLAG +- showname: %s\n", showname);
+
+	  goto xml_parse_proto_end;
+	}
+
 	/* if the name, showname or show contain a " * / " it's a problem.. */
+	output_tab_(conf->tab, "\n");
 	output_tab_(conf->tab, "// name    : %s\n", name);
 	output_tab_(conf->tab, "// showname: %s\n", showname);
 	output_tab_(conf->tab, "// show    : %s\n", show);
-	if (size)
-	  output_tab_(conf->tab, "// size: 0x%s (%d)\n", size, strtoul(size, NULL, 16));
+    output_tab_(conf->tab, "// position: %s\n", pos);
+
+	if (size){
+	  output_tab_(conf->tab, "// size: 0x%x (%d)\n", atoi(size), atoi(size));
+    }
 
 	/* yes, it happens! */
 	else {
 	  output_tab_(conf->tab, "// size: 0x0 (0)\n");
 	  goto xml_parse_proto_end;
 	}
-	
+
 	/* yes, it happens! */
 	if (!value)
 	  goto xml_parse_proto_end;
 
 	/* check if we can convert the hexadecimal value in lenght. */
-	/* you can disable this function with the check_length opt  */	
+	/* you can disable this function with the check_length opt  */
 	/* WARNING! probabilistic analysis!                         */
 	length = 0;
 	if ((conf->check_length)) {
@@ -223,7 +257,7 @@ void xml_parse_proto(config *conf, xmlNodePtr cur_orig) {
 	  debug(1, "WARNING! not 100%% sure! you need to verify!\n");
 	  length = recover_length(conf, name, show, value, showname);
 	  if (length)
-	    goto xml_parse_proto_end; 
+	    goto xml_parse_proto_end;
 	}
 	debug(1, "the value is not a length\n");
 
@@ -244,6 +278,7 @@ void xml_parse_proto(config *conf, xmlNodePtr cur_orig) {
 	/* the value is considered as an hexadecimal value. However, */
 	/* you can write this value using the Ethereal-like style    */
 	/* which is activated by default (more userfriendly)         */
+
 	if (conf->ethereal_hex_style) {
 	  output_tab_(conf->tab, AD_F_HEX"(\n");
 	  output_tab_ether(conf->tab, value);
@@ -251,11 +286,15 @@ void xml_parse_proto(config *conf, xmlNodePtr cur_orig) {
 	}
 	else
 	  output_tab_(conf->tab, AD_F_HEX"(%s);\n", value);
-	
+
       xml_parse_proto_end:
+
+	/* update the position */
+	conf->previous_pos = atoi(pos);
+
 	conf->tab--;
       }
-      
+
       /* free attributes */
       if (name) xmlFree(name);
       if (value) xmlFree(value);
@@ -263,6 +302,7 @@ void xml_parse_proto(config *conf, xmlNodePtr cur_orig) {
       if (size) xmlFree(size);
       if (pos) xmlFree(pos);
       if (showname) xmlFree(showname);
+      if (unmaskedvalue) xmlFree(unmaskedvalue);
     }
   }
 }
@@ -270,10 +310,10 @@ void xml_parse_proto(config *conf, xmlNodePtr cur_orig) {
 
 /*---------------------------------------------------------------------------*
  * NAME: xml_parse_ip
- * DESC: Parse the content of a PDML ip 
+ * DESC: Parse the content of a PDML ip
  *---------------------------------------------------------------------------*/
 void xml_parse_ip(config *conf, xmlNodePtr cur_orig) {
-  
+
   xmlChar *value;
   unsigned long result1;
   unsigned long result2;
@@ -308,8 +348,8 @@ void xml_parse_ip(config *conf, xmlNodePtr cur_orig) {
   debug(2, "result2: %p\n", result2);
 
   /* now we write the ip of the packet */
-  conf->ip_pkt = result1;  
-  
+  conf->ip_pkt = result1;
+
   /* check to be sure */
   if (conf->ip_pkt != conf->ip_client) {
     if (conf->ip_pkt != conf->ip_server) {
@@ -317,9 +357,9 @@ void xml_parse_ip(config *conf, xmlNodePtr cur_orig) {
       exit(-1);
     }
   }
-  
 
-  
+
+
 }
 
 /*---------------------------------------------------------------------------*
@@ -327,7 +367,7 @@ void xml_parse_ip(config *conf, xmlNodePtr cur_orig) {
  * DESC: Parse the content of a PDML packet
  *---------------------------------------------------------------------------*/
 void xml_parse_packet(config *conf) {
-  
+
   xmlChar *name;
 
   /* we keep a copy of cur */
@@ -371,13 +411,13 @@ void xml_parse_packet(config *conf) {
       /* tcp type */
       else if (!strncmp(name, "tcp", strlen(name))) {
 	debug(3, "retreiving tcp informations.\n", name);
-	
+
 	/* the communication seems to be in tcp */
 	if (!conf->transport_type)  conf->transport_type = 1;
 
 	/* udp and tcp in the same sniff ? huh not good! */
 	else if (conf->transport_type != 1) {
-	  error_("UDP *AND* TCP?! Check your Ethereal logs!\n");				  
+	  error_("UDP *AND* TCP?! Check your Ethereal logs!\n");
 	  exit(-1);
 	}
 
@@ -386,18 +426,18 @@ void xml_parse_packet(config *conf) {
 	xmlChar *value;
 	unsigned short src_port;
 	unsigned short dst_port;
-	
+
 	value = xml_parse_field(cur, 1, "tcp.srcport", "show");
 	src_port = (unsigned short) atoi(value);
 	xmlFree(value);
-	
+
 	value = xml_parse_field(cur, 1, "tcp.dstport", "show");
 	dst_port = (unsigned short) atoi(value);
 	xmlFree(value);
 
 	/* save the pkt source port */
 	conf->port_pkt = src_port;
-	
+
 	/* save the port */
 	if ((conf->port_client == 0) && (conf->port_server == 0)) {
 	  if (conf->ip_client == conf->ip_pkt) {
@@ -407,20 +447,20 @@ void xml_parse_packet(config *conf) {
 	  if (conf->ip_server == conf->ip_pkt) {
 	    conf->port_client = dst_port;
 	    conf->port_server = src_port;
-	  }  
+	  }
 	}
       }
 
       /* udp type */
       else if (!strncmp(name, "udp", strlen(name))) {
 	debug(3, "retreiving udp informations.\n", name);
-	
+
 	/* the communication seems to be in udp */
 	if (!conf->transport_type) conf->transport_type = 2;
 
 	/* udp and tcp in the same sniff ? huh not good! */
 	else if (conf->transport_type != 2) {
-	  error_("UDP *AND* TCP?! Check your Ethereal logs!\n");				  
+	  error_("UDP *AND* TCP?! Check your Ethereal logs!\n");
 	  exit(-1);
 	}
 
@@ -428,18 +468,18 @@ void xml_parse_packet(config *conf) {
 	xmlChar *value;
 	unsigned short src_port;
 	unsigned short dst_port;
-	
+
 	value = xml_parse_field(cur, 1, "udp.srcport", "show");
 	src_port = (unsigned short) atoi(value);
 	xmlFree(value);
-	
+
 	value = xml_parse_field(cur, 1, "udp.dstport", "show");
 	dst_port = (unsigned short) atoi(value);
 	xmlFree(value);
 
 	/* save the pkt source port */
 	conf->port_pkt = src_port;
-	
+
 	/* save the port */
 	if ((conf->port_client == 0) && (conf->port_server == 0)) {
 	  if (conf->ip_client == conf->ip_pkt) {
@@ -449,7 +489,7 @@ void xml_parse_packet(config *conf) {
 	  if (conf->ip_server == conf->ip_pkt) {
 	    conf->port_client = dst_port;
 	    conf->port_server = src_port;
-	  }  
+	  }
 	}
       }
 
@@ -457,7 +497,7 @@ void xml_parse_packet(config *conf) {
       /* TODO XXXFIXMEXXX parse icmp, etc.. like tcp */
       else if (conf->check_proto) {
 	debug(3, "proto type: %s\n", name);
-	
+
 	/* parse the content of the packet */
 	verbose_("[*] packet type: %s\n", name);
 	xml_parse_proto(conf, cur);
@@ -497,7 +537,7 @@ void xml_parsing(config *conf) {
     xmlFreeDoc(conf->doc);
     return;
   }
-  
+
   /* check if the format seems to be PDML: ie root = pdml */
   debug(3,"name of the root: %s\n", conf->cur->name);
   if (xmlStrcmp(conf->cur->name, (const xmlChar *) "pdml")) {
@@ -519,13 +559,13 @@ void xml_parsing(config *conf) {
       debug(3, "packet field found\n");
       /* open the block */
       output_(AD_F_BLOCK_BEGIN"(\"packet_%d\");\n", conf->packet_counter);
-      
+
       /* parse the internal data of the packet block */
       xml_parse_packet(conf);
-      
+
       /* close the block */
       output_(AD_F_BLOCK_END"(\"packet_%d\");\n", conf->packet_counter);
-      
+
       /* client send/recv */
       if ((conf->ip_pkt == conf->ip_client) && (conf->port_pkt == conf->port_client)) {
 	debug(3, "check client\n");
@@ -542,7 +582,7 @@ void xml_parsing(config *conf) {
 	    output_(AD_F_RECV"(\"packet_%d\");  /* udp */\n\n", conf->packet_counter);
 	}
       }
-      
+
       /* server send/recv */
       else if ((conf->ip_pkt == conf->ip_server) && (conf->port_pkt == conf->port_server)) {
 	debug(3, "check server\n");
@@ -559,7 +599,7 @@ void xml_parsing(config *conf) {
 	    output_(AD_F_RECV"(\"packet_%d\");  /* udp */\n\n", conf->packet_counter);
 	}
       }
-      
+
       else {
 	error_("too much different packets?! Check your Ethereal logs!\n");
 	error_("client: ip->%d, port->%d\n", conf->ip_client, conf->port_client);
@@ -567,12 +607,12 @@ void xml_parsing(config *conf) {
 	error_("packet: ip->%d, port->%d\n", conf->ip_pkt, conf->port_pkt);
 	exit(-1);
       }
-      
-      conf->packet_counter++;      
+
+      conf->packet_counter++;
     }
     conf->cur = conf->cur->next;
   }
-  
+
   /* free */
   xmlFreeDoc(conf->doc);
 }

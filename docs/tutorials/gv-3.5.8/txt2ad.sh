@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Copyright (C) 2004 Martin Vuagnoux <autodafe@vuagnoux.com>
 #
@@ -15,12 +15,14 @@ help_usage()
 }
 
 # test the argument
-if [[ "$1" == "" ]]; then
+if [ "$1" == "" ]
+    then
     help_usage
 fi
 
 # test if the file exists
-if [[ -f $1 ]]; then
+if [ -f $1 ]
+    then
     echo "block_begin(\"1\");"
     cat $1 | awk '{printf "string(\"%s\"); hex(0a);\n",$0}'
     echo "block_end(\"1\");"

@@ -4,14 +4,14 @@
  *---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*
  * NAME       : dbg.c
- * DESCRIPTION: 
- * DEPENDANCES: 
- * COMPILATION: 
+ * DESCRIPTION:
+ * DEPENDANCES:
+ * COMPILATION:
  *---------------------------------------------------------------------------*/
 
 
 #define _GNU_SOURCE           /* getopt_long */
-#define DBG_MIN_ARGS 3      
+#define DBG_MIN_ARGS 3
 
 #include <stdio.h>
 #include <string.h>           /* memcpy */
@@ -32,7 +32,7 @@ extern unsigned int verbose;
  *---------------------------------------------------------------------------*/
 void version(char **argv) {
   fprintf(stderr, "%s-v.%d.%d ", argv[0], MAJOR_VERSION, MINOR_VERSION);
-  fprintf(stderr, "- (c) 2004-2006 "NAME" <"EMAIL">\n\n");
+  fprintf(stderr, "- (c) 2004-2007 "NAME" <"EMAIL">\n\n");
 }
 
 /*---------------------------------------------------------------------------*
@@ -52,7 +52,7 @@ void usage(char **argv, config *conf) {
   fprintf(stderr, "    -G  --gdb-dump=FILE    copy the gdb's output in a file.\n");
   fprintf(stderr, "    -s  --string-dump=FILE copy the vulnerables strings in a file.\n\n");
   fprintf(stderr, "  List of the debugger's functions:\n");
-  fprintf(stderr, "    -p  --port=NUM         The listening TCP port of the debugger.\n");  
+  fprintf(stderr, "    -p  --port=NUM         The listening TCP port of the debugger.\n");
   fprintf(stderr, "    -P  --pid=NUM          the pid of the program you want to debug.\n");
   fprintf(stderr, "    -i  --input=FILE       file which contains the strings used to break.\n");
   fprintf(stderr, "\n");
@@ -66,10 +66,10 @@ void usage(char **argv, config *conf) {
 /*---------------------------------------------------------------------------*
  * NAME: parsing_args
  * DESC: Parse the arguments using getopt_long return the first non-optionnal
- *       index in argv[]. 
+ *       index in argv[].
  *---------------------------------------------------------------------------*/
 unsigned int parsing_args(int argc, char **argv, config *conf) {
-  
+
   static struct option long_options[] = {
     {"help", 0, NULL, 'h'},
     {"version", 0, NULL, 'V'},
@@ -89,10 +89,10 @@ unsigned int parsing_args(int argc, char **argv, config *conf) {
   if (argc < DBG_MIN_ARGS) {
     usage(argv, conf);
   }
-  
+
   while (1) {
     c = getopt_long(argc, argv, options, long_options, &option_index);
-    if (c == -1) 
+    if (c == -1)
       break;
 
     /* check the arguments */
@@ -146,7 +146,7 @@ unsigned int parsing_args(int argc, char **argv, config *conf) {
 }
 
 /*---------------------------------------------------------------------------*
- * NAME: init_configuration  
+ * NAME: init_configuration
  * DESC: Initialize with the default values the configuration structure
  *---------------------------------------------------------------------------*/
 void init_configuration(config *conf) {
@@ -200,6 +200,9 @@ int main(int argc, char **argv) {
   conf->program = argv[first_arg];
   if (conf->program) debug(2, "[program name]: %s\n", argv[first_arg]);
 
+  /* the default architecture */
+  conf->arch = 0x00;
+
   /* parse the args (don't forget to free!) */
   conf->args = argv[first_arg + 1];
   if (conf->args) debug(2, "[arg string]: %s\n", argv[first_arg+1]);
@@ -213,7 +216,7 @@ int main(int argc, char **argv) {
       ((conf->pid != 0) && (conf->program != NULL))      || /* no program with pid */
       ((conf->port != 0) && (conf->program == NULL))     || /* program with port */
       ((conf->input != NULL) && (conf->program == NULL))    /* program with input */
-      ) 
+      )
     {
       usage(argv, conf);
     }

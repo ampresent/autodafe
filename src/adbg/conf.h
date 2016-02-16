@@ -24,12 +24,13 @@ struct struct_bp {
 struct struct_string {
   struct struct_string *next; /* linked list */
   unsigned int id;            /* id of the string (from the fuzzer) */
-  unsigned char *string;      /* buffer containing a string */
+  char *string;      /* buffer containing a string */
 } string;
 
 typedef struct configuration {
   unsigned int pid;             /* pid of the debugged process */
   char *gdb_exe;                /* the gdb execution string */
+  char arch;                    /* architecture of the executable */
   char *input;                  /* the file used as an string input */
   FILE *f_input;                /* input file */
   char *program;                /* pointer on the program name */
@@ -40,7 +41,7 @@ typedef struct configuration {
   char *args;                   /* pointer on the args of the program */
   int master;                   /* master of the pseudo terminal */
   int slave;                    /* slave of the pseudo terminal */
-  unsigned char * gdb_buf;      /* buffer containing the output of gdb */
+  char * gdb_buf;      /* buffer containing the output of gdb */
   struct struct_bp *bp;         /* linked list of the breakpoints */
   struct struct_string *string; /* linked list of the recv. strings */
   unsigned short port;          /* listening port (fuzzer connection) */

@@ -12,6 +12,7 @@
 #include <strings.h>      /* bcopy */
 #include <string.h>       /* memset */
 #include <sys/types.h>    /* socket */
+#include <netinet/tcp.h>  /* setsockopt (TCP_NODEAY) */
 #include <sys/socket.h>   /* socket, shutdown, inet_ntoa */
 #include <netinet/in.h>   /* inet_ntoa */
 #include <arpa/inet.h>    /* inet_nota */
@@ -21,7 +22,7 @@
 
 #include "debug.h"
 #include "conf.h"
-#include "chrono.h"     
+#include "chrono.h"
 
 extern int h_errno; /* gethostbyname error */
 extern struct sockaddr_in server; /* needed between send/recv_fuzz and client/server_fuzz */
@@ -61,6 +62,7 @@ int client_fuzz(config *conf) {
   struct hostent *h;
   int result;
   int i;
+  int yes = 1;
 
   /* debug */
   debug(1, "<-----------------------[enter]\n");
@@ -76,13 +78,21 @@ int client_fuzz(config *conf) {
   /* socket tcp */
   if (conf->type == 0) {
     conf->socket = socket(PF_INET, SOCK_STREAM, 0);
+
+    /* BUG0004: Force to flush the data (useful sometimes) */
+    if (setsockopt(conf->socket, IPPROTO_TCP, TCP_NODELAY, (char *)&yes, sizeof(yes)) < 0) {
+      error_("setsockopt(): ");
+      perror("");
+      error_("QUITTING!\n");
+      return -1;
+    }
   }
 
   /* socket udp */
   else {
-  conf->socket = socket(PF_INET, SOCK_DGRAM, 0);
+    conf->socket = socket(PF_INET, SOCK_DGRAM, 0);
   }
-  
+
   if (conf->socket < 0) {
     error_("socket(): ");
     perror("");
@@ -96,7 +106,7 @@ int client_fuzz(config *conf) {
   server.sin_family = AF_INET;
   server.sin_port = htons((short) conf->port);
 
-  /* we wait X seconds before connecting, just to let the time to 
+  /* we wait X seconds before connecting, just to let the time to
      the debugger to fire up the software. */
   if (conf->wait) {
     for(i=conf->wait;i>0;i--) {
@@ -162,6 +172,14 @@ int server_fuzz(config *conf) {
   /* tcp socket */
   if (conf->type == 0) {
     serv_socket = socket(PF_INET, SOCK_STREAM, 0);
+
+    /* BUG0004: Force to flush the data (useful sometimes) */
+    if (setsockopt(serv_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&yes, sizeof(yes)) < 0) {
+      error_("setsockopt(): ");
+      perror("");
+      error_("QUITTING!\n");
+      return -1;
+    }
   }
 
   /* udp socket */
@@ -209,7 +227,7 @@ int server_fuzz(config *conf) {
   if (conf->type == 0) {
     len = sizeof(client);
     conf->socket = accept(serv_socket, (struct sockaddr *)&client, &len);
-    
+
     /* connection */
     verbose_("[*] connection from: %s\n", inet_ntoa(client.sin_addr));
   }
@@ -221,7 +239,7 @@ int server_fuzz(config *conf) {
 
   /* parse chrono structure */
   result = parse_chrono(conf);
-  
+
   /* close opened socket */
   shutdown_socket(conf);
   if (serv_socket >= 0) {
@@ -230,7 +248,7 @@ int server_fuzz(config *conf) {
     serv_socket = -1;
     debug(3,"serv_socket closed\n");
   }
-  
+
   /* debug */
   debug(1, "<-----------------------[quit]\n");
 

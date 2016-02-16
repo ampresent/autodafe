@@ -14,7 +14,7 @@
 
 /* version */
 #define MAJOR_VERSION 0
-#define MINOR_VERSION 1
+#define MINOR_VERSION 2
 
 /* default fuzz files */
 #define DEFAULT_FUZZ_STRING_FILE "/usr/local/etc/autodafe/string.fuzz"

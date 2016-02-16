@@ -65,7 +65,9 @@
 #define GDB_PARA_RDI    0x01
 #define GDB_PARA_RSI    0x02
 
-int arch64 = 0;
+#define GDB_ARCH_DEFAULT 0x00
+#define GDB_ARCH_64      0x01
+
 
 /* instance of conf */
 config *the_conf;
@@ -306,7 +308,7 @@ void gdb_event_sigsegv(config *conf) {
   /* check the address */
   result = gdb_look_for(conf, "addr"); /* don't forget to free */
   eip =  strtol(result, NULL, 16);
-  if (arch64)
+  if (conf->arch == GDB_ARCH_64)
     printf("[***] RIP: %p\n", (void *) eip);
   else
     printf("[***] EIP: %p\n", (void *) eip);
@@ -355,8 +357,9 @@ int gdb_type_line(config *conf) {
   }
 
   else if (strncmp(conf->gdb_buf, GDB_LINE_ARCH_S, strlen(GDB_LINE_ARCH_S)) == 0){
+      // TODOXXXFIXMEXXX strstr can be unsafe
       if (strstr(conf->gdb_buf, "64") != NULL){
-          arch64 = 1;
+          conf->arch = GDB_ARCH_64;
       }
       result = GDB_LINE_ARCH;
       debug(2, "[line_type]: architecture info\n");
@@ -614,7 +617,7 @@ void gdb_break(config *conf, char *name, unsigned int para, unsigned int esp, un
   verbose__("    +-> id  : %d\n", bp->id);
   verbose__("    +-> addr: %p\n", bp->addr);
   if (bp->para == GDB_PARA_STACK){
-      if (arch64){
+      if (conf->arch == GDB_ARCH_64){
         if (bp->para == GDB_PARA_RDI)
           verbose__("    +-> rdi\n");
         else if (bp->para == GDB_PARA_RSI)
@@ -689,7 +692,7 @@ int gdb_init(config *conf) {
 
     // TODOXXXFIXMEXXX
     //  ignore once, because gdb set breakpoint on glibc's _init too
-      if (arch64)
+      if (conf->arch == GDB_ARCH_64)
         gdb_write_line(conf, "-break-insert -i 1 _init\n");
       else
         gdb_write_line(conf, "-break-insert _init\n");
@@ -709,12 +712,12 @@ int gdb_init(config *conf) {
 
   // TODOXXXFIXMEXXX add the vuln functions */
   /* string (stack/heap overflow based) */
-  gdb_break(conf, "strcpy", GDB_PARA_RSI, 0x08, GDB_STRING); /* $esp+8 and string value */
-  gdb_break(conf, "strcat", GDB_PARA_RSI, 0x08, GDB_STRING); /* $esp+8 and string value */
-  gdb_break(conf, "gets", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value */
-  gdb_break(conf, "sprintf", GDB_PARA_RSI, 0x08, GDB_STRING);   /* $esp+8 and string value */
-  gdb_break(conf, "getenv", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value */
-  gdb_break(conf, "stpcpy", GDB_PARA_RSI, 0x08, GDB_STRING);   /* $esp+8 and string value */
+  gdb_break(conf, "strcpy", GDB_PARA_RSI, 0x08, GDB_STRING); /* $esp+8 and string value and rsi in x64 architecture*/
+  gdb_break(conf, "strcat", GDB_PARA_RSI, 0x08, GDB_STRING); /* $esp+8 and string value and rsi in x64 architecture*/
+  gdb_break(conf, "gets", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value and rsi in x64 architecture*/
+  gdb_break(conf, "sprintf", GDB_PARA_RSI, 0x08, GDB_STRING);   /* $esp+8 and string value and rsi in x64 architecture*/
+  gdb_break(conf, "getenv", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value and rsi in x64 architecture*/
+  gdb_break(conf, "stpcpy", GDB_PARA_RSI, 0x08, GDB_STRING);   /* $esp+8 and string value and rsi in x64 architecture*/
   //  gdb_break(conf, "memcpy", 0x08, GDB_STRING);   /* $esp+8 and string value */
   //  gdb_break(conf, "memccpy", 0x08, GDB_STRING);   /* $esp+8 and string value */
   //  gdb_break(conf, "bcopy", 0x04, GDB_STRING);   /* $esp+4 and string value */
@@ -722,8 +725,8 @@ int gdb_init(config *conf) {
   //  gdb_break(conf, "realpath", 0x04, GDB_STRING);   /* $esp+4 and string value */
 
   /* format string overflow based */
-  gdb_break(conf, "printf", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value */
-  gdb_break(conf, "syslog", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value */
+  gdb_break(conf, "printf", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value and rsi in x64 architecture*/
+  gdb_break(conf, "syslog", GDB_PARA_RDI, 0x04, GDB_STRING);   /* $esp+4 and string value and rsi in x64 architecture*/
 
   /* open the connection with the fuzzer */
   if (conf->port) inet_connection(conf);
@@ -763,7 +766,7 @@ void gdb_break_string(config *conf, struct struct_bp *bp) {
   debug(1, "<-----------------------[enter]\n");
 
   /* write the string */
-  if (arch64){
+  if (conf->arch == GDB_ARCH_64){
     if (bp->para == GDB_PARA_RDI)
       gdb_write_line(conf, "printf \"%%s\\n\", $rdi\n");
     else if (bp->para == GDB_PARA_RSI)
@@ -1153,7 +1156,7 @@ int gdb_core(config *conf) {
     char pid_string[11+1];
     bzero(pid_string, sizeof(pid_string));
     snprintf(pid_string, sizeof(pid_string)-1, "%d", conf->pid);
-    pid_string[12] = '\0';
+    pid_string[11] = '\0';
     strncat(conf->gdb_exe, pid_string, strlen(pid_string));
   }
   else  {

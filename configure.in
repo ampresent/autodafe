@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.59)
-AC_INIT(autodafe, 0.1, autodafe@vuagnoux.com)
+AC_PREREQ(2.60)
+AC_INIT(autodafe, 0.2, autodafe@vuagnoux.com)
 AC_CONFIG_SRCDIR([src/adbg/conf.h])
 AC_CONFIG_HEADER([config.h])
 
@@ -10,7 +10,19 @@ AC_CONFIG_HEADER([config.h])
 AC_PROG_CC
 AC_PROG_LEX
 AC_PROG_YACC
+AC_PROG_AWK
+AC_PROG_INSTALL
 
+# Check if xml-config is present
+AC_PATH_PROG(XML_CONFIG, xml2-config, no)
+if test x$XML_CONFIG = xno; then
+   AC_MSG_ERROR([xml2-config needed!])
+fi
+
+XML_LIBS=`xml2-config --libs`
+XML_CFLAGS=`xml2-config --cflags`
+AC_SUBST(XML_LIBS)
+AC_SUBST(XML_CFLAGS)
 
 # Check if gdb is present
 AC_CHECK_PROG(HAVE_GDB, gdb, "yes", "no")
@@ -32,13 +44,13 @@ AC_CHECK_LIB([pthread], [main])
 # FIXME: Replace `main' with a function in `-lutil':
 AC_CHECK_LIB([util], [main])
 # FIXME: Replace `main' with a function in `-lxml2':
-AC_CHECK_LIB([xml2], [main])
+AC_CHECK_LIB([xml2], [xmlStrcmp])
 # FIXME: Replace `main' with a function in `-lz':
 AC_CHECK_LIB([z], [main])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stddef.h arpa/inet.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([stddef.h arpa/inet.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h sys/time.h unistd.h libintl.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -56,10 +68,7 @@ AC_TYPE_SIGNAL
 AC_FUNC_STAT
 AC_CHECK_FUNCS([bzero dup2 gethostbyname inet_ntoa memset select socket strchr strstr strtol strtoul])
 
-AC_CONFIG_FILES([Makefile:Makefile.in:boilerplate.mk
-		 src/Makefile:src/Makefile.in:boilerplate.mk
-	 	 src/adbg/Makefile
-                 src/adc/Makefile
-                 src/autodafe/Makefile
-                 src/pdml2ad/Makefile])
+AC_CONFIG_FILES([Makefile:Makefile.in
+		 src/adc/Makefile])
+
 AC_OUTPUT

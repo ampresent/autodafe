@@ -27,10 +27,12 @@ qstring         \"[^"\\\n]*(\\.[^"\\\n]*)*\"
 qcomment        \/\/.*\n
 space           [ \t]+        
 nl              \n
+rnl             \r\n
 void            .
 %%
 {qcomment}      { lineno++; }
-{nl}            { lineno++; }
+{nl}            { ;lineno++; }
+{rnl}           { ;lineno++; }
 {space}         /* do nothing */ ;
 "/*"            { skip_comment(); }
 "("             { return OPEN_PAREN; }

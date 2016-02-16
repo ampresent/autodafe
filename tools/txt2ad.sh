@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Copyright (C) 2004 Martin Vuagnoux <autodafe@vuagnoux.com>
 #

@@ -11,7 +11,7 @@
 #include "../../include/autodafe.h"
 #include "debug.h"
 
-  // #define DEBUG
+  //  #define DEBUG
   
   extern unsigned int lineno; /* line counter */
   FILE * file_adc;            /* output file */
@@ -838,7 +838,7 @@ int main(int argc, char **argv) {
    if((argc < 2)) {
      fprintf(stderr, "%s-v.%d.%d - Autodafe's script [.ad] -> Autodafe's compiled script [.adc]\n", argv[0], MAJOR_VERSION, MINOR_VERSION);
      fprintf(stderr, "%s-v.%d.%d ", argv[0], MAJOR_VERSION, MINOR_VERSION);
-     fprintf(stderr, "- (c) 2004-2006 "NAME" <"EMAIL">\n\n");
+     fprintf(stderr, "- (c) 2004-2007 "NAME" <"EMAIL">\n\n");
      fprintf(stderr, "Usage: %s <file.ad> [<file.adc>]\n\n", argv[0]);
      exit(-1);
    }

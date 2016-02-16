@@ -7,7 +7,7 @@
  * DESCRIPTION: All the configuration values
  *---------------------------------------------------------------------------*/
 
-#define MIN_ARGS 2              // number of min args before print usage 
+#define MIN_ARGS 2              // number of min args before print usage
 #define MAX_OUTPUT_SIZE 2*65535 // max size of a outputed string using output.c
 #define MAX_LENGTH_STRING 70    // the max size of a string (user-friendly)
 
@@ -27,16 +27,17 @@ typedef struct configuration {
   unsigned short port_client;       // port of the client
   unsigned int ip_server;           // IP address of the server
   unsigned short port_server;       // port of the server
-  unsigned int ip_pkt;              // IP address of the current packet 
+  unsigned int ip_pkt;              // IP address of the current packet
   unsigned short port_pkt;          // port of the current packet
   unsigned int send;                // if = 1 we send the current packet, otherwise, receive
-  unsigned int tab;                 // just to be user-friendly, num of tab in output_tab_ 
+  unsigned int tab;                 // just to be user-friendly, num of tab in output_tab_
   unsigned int ethereal_hex_style;  // to have the hexa values in ethereal-like
   unsigned int check_proto;         // if = 1 we try to recover the protocol using the ethereal engine
   unsigned int check_string;        // if = 1 we check if hex value can be a string and if
                                     // yes, we convert the hex value in a string function
   unsigned int check_length;        // try to discover the length fields (probabilistic)
   char *output_name;                // name of the output file
+  unsigned int previous_pos;        // to compute the previous byte position (avoid flag description)
 } config;
 
 unsigned int verbose; /* shared value for debug.c */

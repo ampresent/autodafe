@@ -64,7 +64,7 @@ void push_data(config *conf, unsigned char *ptr, unsigned int size) {
   debug(1, "<-----------------------[enter]\n");
 
   /* realloc the buffer */
-  conf->buf_fuzz = (unsigned char *) realloc_(conf->buf_fuzz, conf->buf_fuzz_size + size);
+  conf->buf_fuzz = (char *) realloc_(conf->buf_fuzz, conf->buf_fuzz_size + size);
 
   /* copy the data */
   memcpy(conf->buf_fuzz + conf->buf_fuzz_size, ptr, size);
@@ -392,7 +392,6 @@ void update_length(config *conf) {
 	  break;
 	case HF_BLOCK_SIZE_S_10 : /* string in decimal */
       insert_data(conf, size_string, strnlen(size_string, sizeof(size_string)), length->offset);
-	  /* TODOXXXFIXMEXXX */
 	  break;
 	default: /* should never happen */
 	  break;

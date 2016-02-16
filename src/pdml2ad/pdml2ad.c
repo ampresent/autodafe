@@ -33,7 +33,7 @@ extern FILE *output_desc;
  *---------------------------------------------------------------------------*/
 void version(char **argv) {
   fprintf(stderr, "%s-v.%d.%d ", argv[0], MAJOR_VERSION, MINOR_VERSION);
-  fprintf(stderr, "- (c) 2004-2006 "NAME" <"EMAIL">\n\n");
+  fprintf(stderr, "- (c) 2004-2007 "NAME" <"EMAIL">\n\n");
 }
 
 /*---------------------------------------------------------------------------*
@@ -66,10 +66,10 @@ void usage(char **argv, config *conf) {
 /*---------------------------------------------------------------------------*
  * NAME: parsing_args
  * DESC: Parse the arguments using getopt_long return the first non-optionnal
- *       index in argv[]. 
+ *       index in argv[].
  *---------------------------------------------------------------------------*/
 unsigned int parsing_args(int argc, char **argv, config *conf) {
-  
+
   static struct option long_options[] = {
     {"help", 0, NULL, 'h'},
     {"version", 0, NULL, 'V'},
@@ -88,10 +88,10 @@ unsigned int parsing_args(int argc, char **argv, config *conf) {
   if (argc < MIN_ARGS) {
     usage(argv, conf);
   }
-  
+
   while (1) {
     c = getopt_long(argc, argv, options, long_options, &option_index);
-    if (c == -1) 
+    if (c == -1)
       break;
 
     /* check the arguments */
@@ -127,7 +127,7 @@ unsigned int parsing_args(int argc, char **argv, config *conf) {
       break;
 
     case 'i': /* invert mode ie: 1st pkt = recv */
-      conf->invert = 1;     
+      conf->invert = 1;
       break;
 
 
@@ -156,7 +156,7 @@ void init_configuration(config *conf) {
   conf->ip_pkt = 0;
   conf->port_pkt = 0;
   conf->tab = 0;
-  output_desc = NULL;      
+  output_desc = NULL;
   conf->transport_type = 0;     /* default = undefined */
   conf->invert = 0;             /* default = 1st packet = send */
   conf->ethereal_hex_style = 1; /* default = yes (easier to read) */
@@ -166,7 +166,7 @@ void init_configuration(config *conf) {
 
   debug = 0;                    /* default = no debug informations */
   verbose = 0;                  /* default = no verbose */
-
+  conf->previous_pos = -1;
 }
 
 /*---------------------------------------------------------------------------*
@@ -205,13 +205,13 @@ int main(int argc, char **argv) {
     free(conf);
     exit(-1);
   }
-  
+
 
   /* xml parsing of the file */
   xml_parsing(conf);
 
   /* free the configuration structure */
   free(conf);
-  
+
   return 0;
 }
